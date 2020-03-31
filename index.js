@@ -32,7 +32,7 @@ client.on('message', message => {
 
     function statsResult(result) {
         var casesEmbed = new Discord.MessageEmbed()
-            .setTitle("Global Dashboard")
+            .setTitle("Global Dashboard - Hello")
             .setThumbnail("https://i.ibb.co/5Fx8LQw/Real-COVID-19-Virus.png")
             .addFields(
                 { name: "Cases", value: result.cases, inline: true },
