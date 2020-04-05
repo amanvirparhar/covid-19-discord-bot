@@ -32,7 +32,7 @@ client.on('message', message => {
 
     function statsResult(result) {
         var casesEmbed = new Discord.MessageEmbed()
-            .setTitle("Global Dashboard - Hello")
+            .setTitle("Global Dashboard")
             .setThumbnail("https://i.ibb.co/5Fx8LQw/Real-COVID-19-Virus.png")
             .addFields(
                 { name: "Cases", value: result.cases, inline: true },
@@ -185,7 +185,7 @@ client.on('message', message => {
                 { name: "Specific Country", value: "To access a specific country's statistics, use `covid country <countryname>`", inline: false },
                 { name: "Specifc State", value: "To access a specific US state's statistics, use `covid state <statename>`"},
             )
-            .setFooter("Why are you reading this? No one ever reads this. But since you are, I just want to say thanks for using the bot.")
+            .setFooter("Special thanks to Crypthes for giving critical feedback during the development of the bot!")
         message.channel.send(help);
     }
     function idk() {
@@ -199,7 +199,6 @@ client.on('message', message => {
                 { name: "Specific Country", value: "To access a specific country's statistics, use `covid country <countryname>`", inline: false },
                 { name: "Specifc State", value: "To access a specific US state's statistics, use `covid state <statename>`"},
             )
-            .setFooter("Why are you reading this? No one ever reads this. But since you are, I just want to say thanks for using the bot.")
         message.channel.send(idk);
     }
 });
