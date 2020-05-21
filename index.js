@@ -2,7 +2,13 @@ const Discord = require('discord.js');
 const { prefix, token } = require('./config.json');
 const client = new Discord.Client();
 
-var data = require('novelcovid');
+const commaNumber = require('comma-number');
+
+const titleize = require('titleize');
+
+var sort = require("fast-sort")
+
+const fetch = require("node-fetch");
 
 var usercountry = "";
 var userstate = "";
@@ -15,14 +21,22 @@ client.on('message', message => {
     var msg = message.content.toLowerCase();
     
     if (msg.startsWith(`${prefix}stats`)) {
-        data.getAll().then(statsResult);
+        fetch('https://disease.sh/v2/all')
+            .then(result => result.json())
+            .then(statsResult);
     } else if (msg.startsWith(`${prefix}countrylist`)) {
-        data.getCountry().then(listResult);
+        fetch('https://disease.sh/v2/countries')
+            .then(result => result.json())
+            .then(listResult);
     } else if (msg.startsWith(`${prefix}country `)) {
-        data.getCountry().then(countryResult);
+        fetch('https://disease.sh/v2/countries')
+            .then(result => result.json())
+            .then(countryResult);
         usercountry = message.content;
     } else if (msg.startsWith(`${prefix}state `)) {
-        data.getState().then(stateResult);
+        fetch('https://disease.sh/v2/states')
+            .then(result => result.json())
+            .then(stateResult);
         userstate = message.content;
     } else if (msg.startsWith(`${prefix}help`)) {
         help();
@@ -35,17 +49,22 @@ client.on('message', message => {
             .setTitle("Global Dashboard")
             .setThumbnail("https://i.ibb.co/5Fx8LQw/Real-COVID-19-Virus.png")
             .addFields(
-                { name: "Cases", value: result.cases, inline: true },
-                { name: "Deaths", value: result.deaths, inline: true },
-                { name: "Recovered", value: result.recovered, inline: true },
+                { name: "Cases", value: commaNumber(result.cases) + " (+" + Math.round(1000*result.todayCases/result.cases)/10 + "%)", inline: true },
+                { name: "Deaths", value: commaNumber(result.deaths) + " (+" + Math.round(1000*result.todayDeaths/result.deaths)/10 + "%)", inline: true },
+                { name: "Recovered", value: commaNumber(result.recovered), inline: true },
+                { name: "Tested", value: commaNumber(result.tests), inline: true },
             )
             .setFooter("Last Updated: " + new Date(result.updated).toLocaleString() + ", Coordinated Universal Time")
         message.channel.send(casesEmbed);
     }
     function listResult(result) {
         var countrieslist = [];
-        for (i = 0; i < result.length; i++) {
-            countrieslist.push(result[i].country);
+        var listdata = result;
+
+        sort(listdata).desc(u => u.cases);
+
+        for (i = 0; i < listdata.length; i++) {
+            countrieslist.push(listdata[i].country);
         }
         
         for (var i = 0; i < countrieslist.length; i++){
@@ -71,14 +90,16 @@ client.on('message', message => {
         var flag = [];
         var casestoday = [];
         var deathstoday = [];
+        var tested = [];
         var entity = "country ";
 
         var statsindex = 0;
         
         var saidcountry = usercountry.slice(prefix.length + entity.length);
-        saidcountry = saidcountry[0].toUpperCase() + saidcountry.slice(1);
 
-        if (saidcountry == "Usa" || saidcountry == "United states" || saidcountry == "United states of america" || saidcountry == "US" || saidcountry == "Us") {
+        saidcountry = titleize(saidcountry);
+
+        if (saidcountry == "Usa" || saidcountry == "United states" || saidcountry == "United states of america" || saidcountry == "US" || saidcountry == "Us" || saidcountry == "America") {
             saidcountry = "USA";
         }
 
@@ -103,6 +124,9 @@ client.on('message', message => {
         for (i = 0; i < result.length; i++) {
             deathstoday.push(result[i].todayDeaths);
         }
+        for (i = 0; i < result.length; i++) {
+            tested.push(result[i].tests);
+        }
         
         if (countries.includes(saidcountry)) {
             statsindex = countries.indexOf(saidcountry);
@@ -110,10 +134,10 @@ client.on('message', message => {
                 var flagfail = new Discord.MessageEmbed()
                     .setTitle(saidcountry + " Dashboard")
                     .addFields(
-                        { name: "Cases", value: cases[statsindex] + " (+" + Math.round(1000*casestoday[statsindex]/cases[statsindex])/10 + "%)", inline: true },
-                        { name: "Deaths", value: deaths[statsindex] + " (+" + Math.round(1000*deathstoday[statsindex]/deaths[statsindex])/10 + "%)", inline: true },
-                        { name: "Recovered", value: recovered[statsindex], inline: true },
-
+                        { name: "Cases", value: commaNumber(cases[statsindex]) + " (+" + Math.round(1000*casestoday[statsindex]/cases[statsindex])/10 + "%)", inline: true },
+                        { name: "Deaths", value: commaNumber(deaths[statsindex]) + " (+" + Math.round(1000*deathstoday[statsindex]/deaths[statsindex])/10 + "%)", inline: true },
+                        { name: "Recovered", value: commaNumber(recovered[statsindex]), inline: true },
+                        { name: "Tested", value: commaNumber(tested[statsindex]), inline: true }
                     )
                 message.channel.send(flagfail);
             } else {
@@ -121,9 +145,10 @@ client.on('message', message => {
                     .setTitle(saidcountry + " Dashboard")
                     .setThumbnail(flag[statsindex])
                     .addFields(
-                        { name: "Cases", value: cases[statsindex] + " (+" + Math.round(1000*casestoday[statsindex]/cases[statsindex])/10 + "%)", inline: true },
-                        { name: "Deaths", value: deaths[statsindex] + " (+" + Math.round(1000*deathstoday[statsindex]/deaths[statsindex])/10 + "%)", inline: true },
-                        { name: "Recovered", value: recovered[statsindex], inline: true }
+                        { name: "Cases", value: commaNumber(cases[statsindex]) + " (+" + Math.round(1000*casestoday[statsindex]/cases[statsindex])/10 + "%)", inline: true },
+                        { name: "Deaths", value: commaNumber(deaths[statsindex]) + " (+" + Math.round(1000*deathstoday[statsindex]/deaths[statsindex])/10 + "%)", inline: true },
+                        { name: "Recovered", value: commaNumber(recovered[statsindex]), inline: true },
+                        { name: "Tested", value: commaNumber(tested[statsindex]), inline: true }
                     )
                 message.channel.send(inputCountry);
             }
@@ -137,13 +162,15 @@ client.on('message', message => {
         var deaths = [];
         var casestoday = [];
         var deathstoday = [];
+        var tested = [];
 
         var entity = "state ";
 
         var statsindex = 0;
         
         var saidstate = userstate.slice(prefix.length + entity.length);
-        saidstate = saidstate[0].toUpperCase() + saidstate.slice(1);
+
+        saidstate = titleize(saidstate);
 
         for (i = 0; i < result.length; i++) {
             cases.push(result[i].cases);
@@ -160,14 +187,18 @@ client.on('message', message => {
         for (i = 0; i < result.length; i++) {
             deathstoday.push(result[i].todayDeaths);
         }
+        for (i = 0; i < result.length; i++) {
+            tested.push(result[i].tests);
+        }
         
         if (states.includes(saidstate)) {
             statsindex = states.indexOf(saidstate);
             var statelist = new Discord.MessageEmbed()
                 .setTitle(saidstate + " Dashboard")
                 .addFields(
-                    { name: "Cases", value: cases[statsindex]  + " (+" + Math.round(1000*casestoday[statsindex]/cases[statsindex])/10 + "%)", inline: true },
-                    { name: "Deaths", value: deaths[statsindex]  + " (+" + Math.round(1000*deathstoday[statsindex]/deaths[statsindex])/10 + "%)", inline: true }
+                    { name: "Cases", value: commaNumber(cases[statsindex])  + " (+" + Math.round(1000*casestoday[statsindex]/cases[statsindex])/10 + "%)", inline: true },
+                    { name: "Deaths", value: commaNumber(deaths[statsindex])  + " (+" + Math.round(1000*deathstoday[statsindex]/deaths[statsindex])/10 + "%)", inline: true },
+                    { name: "Tested", value: commaNumber(tested[statsindex]), inline: true }
                 )
             message.channel.send(statelist);
         } else {
@@ -177,6 +208,7 @@ client.on('message', message => {
     function help() {
         var help = new Discord.MessageEmbed()
             .setTitle("Help")
+            .setAuthor('Like COVID-19 Quick Stats? Vote up the bot!', 'https://top.gg/images/dblnew.png', 'https://top.gg/bot/691163945402368001')
             .setThumbnail("https://iconsplace.com/wp-content/uploads/_icons/ffa500/256/png/help-icon-11-256.png")
             .setDescription("Hey! I'm your very own COVID-19 Discord bot, ready to give you some easy-to-access information on the current pandemic. Below are the commands you'll need to get started:")
             .addFields(
@@ -191,6 +223,7 @@ client.on('message', message => {
     function idk() {
         var idk = new Discord.MessageEmbed()
             .setTitle("Unrecognized Command")
+            .setAuthor('Like COVID-19 Quick Stats? Vote up the bot!', 'https://top.gg/images/dblnew.png', 'https://top.gg/bot/691163945402368001')
             .setThumbnail("http://clipart-library.com/data_images/81859.png")
             .setDescription("Eeeh! I don't seem to know what that means. Here are some of the commands that I support:")
             .addFields(
